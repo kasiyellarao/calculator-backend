@@ -5,51 +5,19 @@ const cors = require("cors");
 require("dotenv").config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors({ origin: "*" })); // Allow all origins
+app.use(cors());
 app.use(express.json());
 
-// MongoDB connection
-mongoose.connect(process.env.MONGO_URI)
+mongoose
+  .connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB Connected"))
-  .catch(err => console.error("MongoDB connection error:", err));
+  .catch((err) => console.error("MongoDB Connection Error:", err));
 
-// Calculation schema
-const calculationSchema = new mongoose.Schema({
-  expression: String,
-  result: Number,
-  createdAt: { type: Date, default: Date.now }
+app.use("/api/calculations", require("./routes/calculationRoutes"));
+
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
-
-const Calculation = mongoose.model("Calculation", calculationSchema);
-
-// Routes
-app.get("/api/calculations", async (req, res) => {
-  try {
-    const history = await Calculation.find().sort({ createdAt: -1 });
-    res.json(history);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-});
-
-app.post("/api/calculations", async (req, res) => {
-  try {
-    const { expression, result } = req.body;
-    if (!expression || result === undefined) {
-      return res.status(400).json({ error: "Invalid data" });
-    }
-
-    const calc = await Calculation.create({ expression, result });
-    res.status(201).json(calc);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-});
-
-// Start server
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
